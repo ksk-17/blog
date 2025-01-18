@@ -84,105 +84,105 @@ The Transformer follows this overall architecture using stacked self-attention a
            return attn_output
    ```
 
-   2. **Point wise Feed-Forward Networks**: Along with the sublayers, encoder and decoder layers are connected with Feed Forward Neural Network, which consists of two linear transformations with a Relu function as follows:
+2. **Point wise Feed-Forward Networks**: Along with the sublayers, encoder and decoder layers are connected with Feed Forward Neural Network, which consists of two linear transformations with a Relu function as follows:
 
-      $FFN(x) = max(0, xW_1 + b_1)W_2 + b_2$
+   $FFN(x) = max(0, xW_1 + b_1)W_2 + b_2$
 
-   ```
-   class PositionWiseFeedForward(nn.Module):
-       def __init__(self, d_model, d_ff):
-           super().__init__()
-           self.W_1 = nn.Linear(d_model, d_ff)
-           self.W_2 = nn.Linear(d_ff, d_model)
-           self.relu = nn.ReLU()
+```
+class PositionWiseFeedForward(nn.Module):
+    def __init__(self, d_model, d_ff):
+        super().__init__()
+        self.W_1 = nn.Linear(d_model, d_ff)
+        self.W_2 = nn.Linear(d_ff, d_model)
+        self.relu = nn.ReLU()
 
-       def forward(self, x):
-           x = self.relu(self.W_1(x))
-           x = self.W_2(x)
-           return x
-   ```
+    def forward(self, x):
+        x = self.relu(self.W_1(x))
+        x = self.W_2(x)
+        return x
+```
 
-   3. **Positional Encoding**: As the model doesn't contains any reccurance and convolutions, to preserve the information of the ordering of the sequence, positional embeddings are added to the inputs of both encoder and decoder stacks. Transformer model use, sin and cosine functions of deffernt frequencies.
+3. **Positional Encoding**: As the model doesn't contains any reccurance and convolutions, to preserve the information of the ordering of the sequence, positional embeddings are added to the inputs of both encoder and decoder stacks. Transformer model use, sin and cosine functions of deffernt frequencies.
 
    $PE_{(pos, 2i)} = sin(pos/10000^{2i/d_{model}})$
 
    $PE_{(pos, 2i + 1)} = cos(pos/10000^{2i/d_{model}})$
 
-   where pos is the position and i is the dimension. each dimension of the positional encoding corresponds to a sinusoid. The wavelengths form a geometric progression from 2π to 10000 · 2π. These functions are used as they would allow the model to easily learn to attend by relative positions, since for any fixed offset k, PE<sub>pos+k</sub> can be represented as a linear function of PE<sub>pos</sub>.
+where pos is the position and i is the dimension. each dimension of the positional encoding corresponds to a sinusoid. The wavelengths form a geometric progression from 2π to 10000 · 2π. These functions are used as they would allow the model to easily learn to attend by relative positions, since for any fixed offset k, PE<sub>pos+k</sub> can be represented as a linear function of PE<sub>pos</sub>.
 
-   ```
-   class PositionalEncoding(nn.Module):
-       def __init__(self, d_model, max_seq_length):
-           super().__init__()
+```
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, max_seq_length):
+        super().__init__()
 
-           pe = torch.zeros(max_seq_length, d_model)
-           position = torch.arange(0, max_seq_length, dtype=torch.float).unsqueeze(1)
-           div_term = torch.exp(torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model))
+        pe = torch.zeros(max_seq_length, d_model)
+        position = torch.arange(0, max_seq_length, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model))
 
-           pe[:, 0::2] = torch.sin(position * div_term)
-           pe[:, 1::2] = torch.cos(position * div_term)
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
 
-           self.register_buffer('pe', pe.unsqueeze(0))
+        self.register_buffer('pe', pe.unsqueeze(0))
 
-       def forward(self, x):
-           x = x + self.pe[:, :x.size(1)]
-           return x
-   ```
+    def forward(self, x):
+        x = x + self.pe[:, :x.size(1)]
+        return x
+```
 
-   4. **Encoder Layer**: The encoder is a stack of identical layers (6 for the base model). Each layer has two sub-layers, The first is a multi-head self-attention mechanism, and the second is a simple, positionwise fully connected feed-forward network. The output of each sublayer is combined with the residual connection and then latter send to the Layer Normalization. `LayerNorm(x + Sublayer(x))`. To maintain consistancy for residual connections and embedding layers across all the sub layers, the output dim is d<sub>model</sub> = 512.
+4. **Encoder Layer**: The encoder is a stack of identical layers (6 for the base model). Each layer has two sub-layers, The first is a multi-head self-attention mechanism, and the second is a simple, positionwise fully connected feed-forward network. The output of each sublayer is combined with the residual connection and then latter send to the Layer Normalization. `LayerNorm(x + Sublayer(x))`. To maintain consistancy for residual connections and embedding layers across all the sub layers, the output dim is d<sub>model</sub> = 512.
 
-   ```
-   class EncoderLayer(nn.Module):
-       def __init__(self, d_model, num_heads, d_ff, dropout):
-           super().__init__()
-           self.self_attn = MultiHeadAttention(d_model, num_heads)
-           self.feed_forward = PositionWiseFeedForward(d_model, d_ff)
-           self.norm1 = nn.LayerNorm(d_model)
-           self.norm2 = nn.LayerNorm(d_model)
-           self.dropout = nn.Dropout(dropout)
+```
+class EncoderLayer(nn.Module):
+    def __init__(self, d_model, num_heads, d_ff, dropout):
+        super().__init__()
+        self.self_attn = MultiHeadAttention(d_model, num_heads)
+        self.feed_forward = PositionWiseFeedForward(d_model, d_ff)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
 
-       def forward(self, x, mask):
-           attn_output = self.self_attn(x, x, x, mask)
-           out1 = self.norm1(x + self.dropout(attn_output))
-           ff_output = self.feed_forward(out1)
-           out2 = self.norm2(out1 + self.dropout(ff_output))
-           return out2
-   ```
+    def forward(self, x, mask):
+        attn_output = self.self_attn(x, x, x, mask)
+        out1 = self.norm1(x + self.dropout(attn_output))
+        ff_output = self.feed_forward(out1)
+        out2 = self.norm2(out1 + self.dropout(ff_output))
+        return out2
+```
 
-   5. **Decoder Layer**: The decoder is also a stack of identical layers (6 for the base model). In addition to the two sub-layers of the encoder, it consits a new sub layer which applies Multi Head attention to the output of the Encoder stack. Similar to encoder layer, residual connection and layer normalisation are used. The Self Attention layer is masked in the decoder, to prevent positions for looking into subsequent positions, this ensures the output of the current position depend only on the known outputs of the positions less than current position.
+5. **Decoder Layer**: The decoder is also a stack of identical layers (6 for the base model). In addition to the two sub-layers of the encoder, it consits a new sub layer which applies Multi Head attention to the output of the Encoder stack. Similar to encoder layer, residual connection and layer normalisation are used. The Self Attention layer is masked in the decoder, to prevent positions for looking into subsequent positions, this ensures the output of the current position depend only on the known outputs of the positions less than current position.
 
-   ```
-   class DecoderLayer(nn.Module):
-       def __init__(self, d_model, num_heads, d_ff, dropout):
-           super().__init__()
-           self.self_attn = MultiHeadAttention(d_model, num_heads)
-           self.cross_attn = MultiHeadAttention(d_model, num_heads)
-           self.feed_forward = PositionWiseFeedForward(d_model, d_ff)
-           self.norm1 = nn.LayerNorm(d_model)
-           self.norm2 = nn.LayerNorm(d_model)
-           self.norm3 = nn.LayerNorm(d_model)
-           self.dropout = nn.Dropout(dropout)
+```
+class DecoderLayer(nn.Module):
+    def __init__(self, d_model, num_heads, d_ff, dropout):
+        super().__init__()
+        self.self_attn = MultiHeadAttention(d_model, num_heads)
+        self.cross_attn = MultiHeadAttention(d_model, num_heads)
+        self.feed_forward = PositionWiseFeedForward(d_model, d_ff)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.norm3 = nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
 
-       def forward(self, x, enc_output, src_mask, tgt_mask):
-           attn_output = self.self_attn(x, x, x, tgt_mask)
-           x = self.norm1(x + self.dropout(attn_output))
-           attn_output = self.cross_attn(x, enc_output, enc_output, src_mask)
-           x = self.norm2(x + self.dropout(attn_output))
-           ff_output = self.feed_forward(x)
-           x = self.norm3(x + self.dropout(ff_output))
-           return x
-   ```
+    def forward(self, x, enc_output, src_mask, tgt_mask):
+        attn_output = self.self_attn(x, x, x, tgt_mask)
+        x = self.norm1(x + self.dropout(attn_output))
+        attn_output = self.cross_attn(x, enc_output, enc_output, src_mask)
+        x = self.norm2(x + self.dropout(attn_output))
+        ff_output = self.feed_forward(x)
+        x = self.norm3(x + self.dropout(ff_output))
+        return x
+```
 
-   Finally Transformer Module to bringing all the blocks together
+Finally Transformer Module to bringing all the blocks together
 
-   ```
-   class Transformer(nn.Module):
+```
+class Transformer(nn.Module):
     def __init__(self, src_vocab_size, tgt_vocab_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout):
         super().__init__()
         self.encoder_embedding = nn.Embedding(src_vocab_size, d_model)
         self.decoder_enbedding = nn.Embedding(tgt_vocab_size, d_model)
         self.positional_encoding = PositionalEncoding(d_model, max_seq_length)
-    
+
         self.encoderList = nn.ModuleList([EncoderLayer(d_model, num_heads, d_ff, dropout) for _ in range(num_layers)])
         self.decoderList = nn.ModuleList([DecoderLayer(d_model, num_heads, d_ff, dropout) for _ in range(num_layers)])
 
@@ -196,7 +196,7 @@ The Transformer follows this overall architecture using stacked self-attention a
         nopeak_mask = (1 - torch.triu(torch.ones(1, seq_length, seq_length), diagonal=1)).bool()
         tgt_mask = tgt_mask & nopeak_mask
         return src_mask, tgt_mask
-    
+
     def forward(self, src, tgt):
         src_mask, tgt_mask = self.generate_mask(src, tgt)
         src_embedded = self.dropout(self.positional_encoding(self.encoder_embedding(src)))
@@ -212,11 +212,10 @@ The Transformer follows this overall architecture using stacked self-attention a
 
         output = self.fc(dec_output)
         return output
-   ```
+```
 
 ## (Additional) Understanding Self Attention
 
 A great resource to understand Attention mechansiam is [LLMs-from-scratch](https://github.com/rasbt/LLMs-from-scratch/tree/main) by Sebastian Raschka.
 
 Refer to this github links: [Understanding Self Attention](https://github.com/rasbt/LLMs-from-scratch/blob/main/ch03/01_main-chapter-code/ch03.ipynb)
-
