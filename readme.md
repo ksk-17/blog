@@ -4,7 +4,7 @@ Here are the links to the pages
 
 ## Machine Learning
 
-1. [Optimization Techniques](MachineLearning\optimizationTexhiniques.md)
+1. [Optimization Techniques](MachineLearning/optimizationTechiniques.md)
 
 ## World of LLM
 
