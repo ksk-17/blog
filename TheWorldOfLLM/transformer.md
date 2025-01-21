@@ -20,7 +20,7 @@ The Need for the transformers arose due to the limitations of Recurrent neural n
 
 ## Transformer Architecture
 
-![Transformer Architecure](\images\transformer-architecture.png)
+![Transformer Architecure](images\transformer-architecture.png)
 
 The model architecture contains stacks of encoders and decoders, where the encoder maps an input sequence of symbol representations (x1, ..., xn) to a sequence
 of continuous representations z = (z1, ..., zn). Given z, the decoder then generates an output sequence (y1, ..., ym) of symbols one element at a time. At each step the model is auto-regressive, i.e. cosuming the previous outputs as the additional input while generating the next.
@@ -29,7 +29,7 @@ The Transformer follows this overall architecture using stacked self-attention a
 
 1. **Attention**: Attention is the mapping of Query, Key and Value vectors to an output. The output is the weighted sum of the values, where the weights are assigned by a compatiblity function of the query to its corresponding key. Two types of attention are employed
 
-   ![Transformer Architecure](\images\transformer-attention.png)
+   ![Transformer Architecure](images\transformer-attention.png)
 
    a. **Scaled Dot Product Attention**: Computes the attention score as the dot product of Queries and Keys scaled by $\sqrt{d_k}$ (dimensions of the key matrix). Then softmax is applied to obtain the weights, further these weights are multiplied with Values to obtain the attentions.
    $$Attention(Q, K, V) = sofmax(\frac{QK^T}{\sqrt{d_k}}) V$$
