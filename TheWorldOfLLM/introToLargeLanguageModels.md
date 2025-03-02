@@ -8,4 +8,8 @@ LLM stands for "Large Language Model," which uses deep learning algorithms to an
 
 LLMs are build upon transformer model, which was first introduced in the following paper [Attention Is All You Need](https://arxiv.org/abs/1706.03762).
 
-Refer to [Transformer Architecture](https://github.com/ksk-17/blog/blob/master/TheWorldOfLLM/transformer.md), for detailed explanation
+Refer to [Transformer Architecture](https://github.com/ksk-17/blog/blob/master/TheWorldOfLLM/transformer.md), for summary of the paper.
+
+The most influential LLM architecture was GPT by OpenAI published in the following paper [Improving Language Understanding
+by Generative Pre-Training](https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf)
+
