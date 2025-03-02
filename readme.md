@@ -11,5 +11,5 @@ Here are the links to the pages
 1. [Introduction to Large Language Models](TheWorldOfLLM/introToLargeLanguageModels.md)
 2. [Transformer Architecture](TheWorldOfLLM/transformer.md)
 3. [GPT Model and its successors](TheWorldOfLLM/gptArchitectureAndItsSuccessors.md)
-4. [Fine Tuning Methods for Large Language Models](TheWorldOfLLM\fineTuningTechiniques.md)
+4. [Fine Tuning Methods for Large Language Models](TheWorldOfLLM/fineTuningTechiniques.md)
 5. [Resoning Models](TheWorldOfLLM/reasoningModels.md)
